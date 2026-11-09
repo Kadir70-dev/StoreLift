@@ -1,0 +1,30 @@
+{
+  "fixtureOnly": true,
+  "notice": "SYNTHETIC FIXTURE — NOT A REAL STORE AUDIT OR REVENUE MEASUREMENT",
+  "id": "00000000-0000-0000-0000-000000000001",
+  "website": "https://sample-store.example/",
+  "auditedAt": "2026-11-09T00:00:00Z",
+  "pages": [{
+    "url": "https://sample-store.example/",
+    "title": "Sample Shop",
+    "description": "",
+    "h1": ["Sample Shop"],
+    "canonical": "https://sample-store.example/",
+    "robots": "index,follow",
+    "images": 2,
+    "missingAlt": 1,
+    "hasProductSchema": false,
+    "issues": [
+      {"severity":"medium","title":"Missing meta description","evidence":"No meta description found","recommendation":"Write a unique compelling description"},
+      {"severity":"medium","title":"Missing image alternative text","evidence":"1 of 2 images missing alt","recommendation":"Add descriptive alt text to informative images; decorative images may use empty alt"}
+    ]
+  }],
+  "mobile": {"status":"not_configured","error":"PageSpeed API key not configured"},
+  "desktop": {"status":"not_configured","error":"PageSpeed API key not configured"},
+  "issues": [
+    {"severity":"medium","title":"Missing meta description","evidence":"No meta description found","recommendation":"Write a unique compelling description"},
+    {"severity":"medium","title":"Missing image alternative text","evidence":"1 of 2 images missing alt","recommendation":"Add descriptive alt text to informative images; decorative images may use empty alt"}
+  ],
+  "score": 88,
+  "caveats": ["Synthetic test fixture only", "Diagnostic score is not a Google ranking score"]
+}

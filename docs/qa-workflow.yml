@@ -1,0 +1,86 @@
+name: StoreLift source QA
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: storelift
+          POSTGRES_USER: storelift
+          POSTGRES_PASSWORD: ci_only_not_for_production
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U storelift -d storelift"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+      - name: Go dependencies and tests
+        run: |
+          go mod download
+          go test -race ./...
+          go vet ./...
+      - name: SQL migration and transactional DB smoke
+        env:
+          DATABASE_URL: postgres://storelift:ci_only_not_for_production@127.0.0.1:5432/storelift?sslmode=disable
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../db/schema.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ../db/smoke.sql
+      - name: API HTTP negative/security smoke
+        env:
+          DATABASE_URL: postgres://storelift:ci_only_not_for_production@127.0.0.1:5432/storelift?sslmode=disable
+          PORT: :8080
+          WEB_ORIGIN: http://localhost:3000
+          RATE_LIMIT_SECRET: ci_purpose_only_32_characters_minimum_123456
+        run: |
+          go run . > /tmp/storelift-api.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8080/api/health > /dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          bash ../scripts/api-smoke.sh
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: TypeScript and lint
+        run: npm run typecheck && npm run lint
+      - name: Production build
+        env:
+          API_INTERNAL_URL: http://127.0.0.1:8080
+        run: npm run build
+      - name: Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests and screenshots
+        run: npm test
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storelift-browser-qa
+          path: |
+            web/test-results/
+            web/playwright-report/
+          if-no-files-found: ignore

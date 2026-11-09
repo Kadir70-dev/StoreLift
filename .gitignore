@@ -1,0 +1,10 @@
+node_modules/
+.next/
+playwright-report/
+test-results/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+!examples/sample-audit.pdf

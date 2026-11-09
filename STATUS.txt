@@ -1,0 +1,30 @@
+STORELIFT — SOURCE PACKAGE STATUS (2026-11-09)
+
+IMPLEMENTED IN CODE:
+- Premium Next.js landing, pricing, FAQ and free public Shopify-style SEO audit
+- Go crawler with HTTPS + robots.txt + DNS/private-IP SSRF protections
+- Google PageSpeed mobile/desktop optional measured API integration
+- PDF audit report, private PostgreSQL-backed audit/lead/deal persistence
+- Password-only admin with revocable HttpOnly sessions and pipeline
+- Stripe-hosted checkout from fixed server-side prices, signed/idempotent webhook settlement and refund states
+- Shareable payment page, no client-side secret API keys
+- Before/after same-store chronological comparison dashboard + report PDF
+- DB schema and transactional smoke SQL
+- API container Dockerfile, Vercel/Go/DB/Stripe deployment instructions, CI, browser E2E mock tests and screenshot scripts
+
+VERIFIED IN THIS ENVIRONMENT:
+- Go gofmt/parser: pass
+- Stripe HMAC + robots policy isolated Go tests: pass
+- TypeScript/TSX syntax parser: pass
+- Synthetic example PDF rendered and visually checked
+
+NOT VERIFIED OR ACTIVATED:
+- Full npm production build, ESLint, TypeScript typecheck and Playwright real-browser run (npm registry not reachable)
+- Full Go module tests (external modules not downloaded, no go.sum)
+- Real PostgreSQL persistence/migrations (PostgreSQL server not present)
+- Real Google PageSpeed request (API key absent)
+- Stripe test account end-to-end or live transactions (credentials absent)
+- Production deployment (intentionally not attempted)
+- Support contact, approved legal/privacy/terms/tax/refund policies and merchant collaborator access
+
+NOT A PRODUCTION RELEASE. See docs/QA_AND_BLOCKERS.md and docs/DEPLOYMENT.md.
