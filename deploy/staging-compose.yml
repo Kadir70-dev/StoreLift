@@ -1,0 +1,20 @@
+# Staging-only backend. Runs behind a separately configured HTTPS reverse proxy.
+# Exposes Go only on the host loopback, never directly to the public internet.
+# Requires private deploy/.env.staging (chmod 600) and managed PostgreSQL TLS.
+services:
+  api:
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.staging
+    ports:
+      - "127.0.0.1:18080:8080"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL

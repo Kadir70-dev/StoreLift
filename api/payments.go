@@ -20,7 +20,17 @@ var packagePrices = map[string]int{"audit": 49, "fix": 199, "premium": 499}
 var packageNames = map[string]string{"audit": "StoreLift Focused SEO Audit", "fix": "StoreLift SEO & Conversion Fix Pack", "premium": "StoreLift Premium Optimization"}
 
 func stripeConfigured() bool {
-	return os.Getenv("STRIPE_SECRET_KEY") != "" && os.Getenv("STRIPE_WEBHOOK_SECRET") != "" && strings.HasPrefix(os.Getenv("SITE_URL"), "https://")
+	key := os.Getenv("STRIPE_SECRET_KEY")
+	webhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+	site := os.Getenv("SITE_URL")
+	if !strings.HasPrefix(webhookSecret, "whsec_") || !strings.HasPrefix(site, "https://") {
+		return false
+	}
+	if strings.HasPrefix(key, "sk_test_") {
+		return true
+	}
+	// Live Stripe credentials alone must never activate checkout.
+	return strings.HasPrefix(key, "sk_live_") && os.Getenv("STORELIFT_LIVE_PAYMENTS_APPROVED") == "true"
 }
 
 func (a *app) checkout(w http.ResponseWriter, r *http.Request) {
@@ -157,6 +167,10 @@ type stripeWebhookEvent struct {
 }
 
 func (a *app) stripeWebhook(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(os.Getenv("STRIPE_SECRET_KEY"), "sk_live_") && os.Getenv("STORELIFT_LIVE_PAYMENTS_APPROVED") != "true" {
+		errOut(w, 503, "live payment processing is not approved")
+		return
+	}
 	if a.db == nil || os.Getenv("STRIPE_WEBHOOK_SECRET") == "" {
 		errOut(w, 503, "payment webhook not configured")
 		return
