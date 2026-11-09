@@ -29,7 +29,7 @@ func TestIP(t *testing.T) {
 	}
 }
 func TestParse(t *testing.T) {
-	p := parsePage("https://shop.example/products/cap", []byte(`<html><head><title>Cap</title><meta name="description" content="Nice cap"><link rel="canonical" href="https://shop.example/products/cap"></head><body><h1>Cap</h1><img src="x" alt="cap"><script type="application/ld+json">{"@type":"Product"}</script></body></html>`), true)
+	p := parsePage("https://shop.example/products/cap", []byte(`<html><head><title>Cap</title><meta name="description" content="Nice cap"><link rel="canonical" href="https://shop.example/products/cap"></head><body><h1>Cap</h1><img src="x" alt="cap"><script type="application/ld+json">{"@type":"Product"}</script><form action="/cart/add"><button type="submit">Add to Cart</button></form><a href="/shipping">Shipping</a><a href="/returns">Return policy</a></body></html>`), true)
 	if len(p.Issues) != 0 {
 		t.Fatalf("unexpected issues %#v", p.Issues)
 	}
