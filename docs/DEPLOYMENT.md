@@ -27,3 +27,24 @@
 
 ## Current status
 **Not deployed to production.** Provider accounts, domain, live secrets, real customer data and authorization are unavailable in this package. Deployment configuration exists; release and live verification remain gated.
+
+## Trusted reverse proxies and client IP attribution
+
+- The API ignores `X-Forwarded-For` by default and keys rate limits by TCP peer address.
+- Set `TRUSTED_PROXY_CIDRS` **only** to exact IP/CIDR ranges of the ingress directly connected to Go (for example a known nginx container or controlled reverse proxy). Ensure the ingress overwrites or safely appends `X-Forwarded-For`, and block direct access to the Go origin.
+- The backend walks the forwarded chain right-to-left, stopping at the first untrusted address. It rejects malformed, oversized chains and overly broad trust CIDRs; never use `0.0.0.0/0` or `::/0`.
+- Vercel edge source IP ranges may vary. Do **not** guess a range or trust all traffic; use a controlled static-IP ingress or dedicated trusted gateway with rate limiting, or accept per-proxy quotas until verified.
+- Confirm actual client-IP attribution using two distinct client networks in staging; test that a spoofed XFF cannot evade limits. Set `RATE_LIMIT_SECRET` and run DB-backed cleanup.
+
+## Legal release gate
+
+Draft `/privacy`, `/terms`, `/refund` pages are not an approved customer contract. Configure `NEXT_PUBLIC_SUPPORT_EMAIL`, the registered seller entity, address, governing law, country-specific disclosures, effective dates, retention/deletion periods and an actual refund eligibility timetable with the business owner or legal counsel. Keep `noindex` on draft policies and do not accept live payments before approval.
+
+## Stripe test-mode runbook
+
+1. Set `STRIPE_SECRET_KEY` to an **sk_test_** key in the API secret store; use Stripe CLI (or Dashboard endpoint) to obtain a **whsec_** signing secret for the exact test webhook endpoint. Never paste secrets into GitHub issues or chat.
+2. Seed a consented test lead via `/api/leads`, invoke `/api/checkout` and open the returned Stripe-hosted URL. Use Stripe-provided test card data only on Stripe Checkout.
+3. Verify the signed `checkout.session.completed` webhook updates the correct deal to `paid`; the browser success URL is not a payment receipt.
+4. Replay the webhook and verify idempotency; send a malformed signature and verify `400`; verify wrong amount/currency is rejected; test expired session, declined card and asynchronous failure.
+5. Issue partial/full test refunds and verify `refunded_amount_cents` and full-refund status. Reconcile Stripe Dashboard events with `payment_events` and `deals` rows, then document screenshots and nonsecret event IDs.
+6. Do not enable live Stripe keys or deploy production without explicit approval.
