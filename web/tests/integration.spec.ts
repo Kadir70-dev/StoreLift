@@ -23,7 +23,7 @@ test('store audit → evidence → lead → checkout (mock payment; no real char
  expect(leadPayload.consent).toBe(true);
  await page.screenshot({path:testInfo.outputPath('audit-result.png'),fullPage:true});
  await page.getByRole('button',{name:/Pay \$199 via Stripe/i}).click();
- await expect(page.getByRole('alert')).toContainText('Mock checkout is disabled');
+ await expect(page.locator('main [role="alert"]')).toContainText('Mock checkout is disabled');
 });
 
 test('admin does not show email/username and denies unauthorized data',async ({page},testInfo)=>{
