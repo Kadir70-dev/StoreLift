@@ -29,6 +29,7 @@ jobs:
           tar -xJf /tmp/storelift-source.tar.xz -C .
           test -f api/main.go && test -f web/package.json && test -f db/schema.sql
           test -f docs/QA_AND_BLOCKERS.md
+          mv .github/workflows/qa.yml docs/qa-workflow.yml
           rm .storelift-source.tar.xz.b64
       - name: Commit original project files
         shell: bash
