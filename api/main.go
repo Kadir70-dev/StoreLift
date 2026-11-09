@@ -116,9 +116,17 @@ func main() {
 	mux.HandleFunc("POST /api/admin/comparisons", a.comparison)
 	mux.HandleFunc("GET /api/admin/comparisons", a.listComparisons)
 	mux.HandleFunc("GET /api/admin/audits", a.adminAudits)
-	srv := &http.Server{Addr: env("PORT", ":8080"), Handler: a.cors(a.limit(mux)), ReadHeaderTimeout: 6 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 1 << 16}
+	srv := &http.Server{Addr: listenAddress(), Handler: a.cors(a.limit(mux)), ReadHeaderTimeout: 6 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 1 << 16}
 	log.Printf("StoreLift listening on %s", srv.Addr)
 	log.Fatal(srv.ListenAndServe())
+}
+// Managed Go hosts commonly inject PORT=10000; Docker/local config may use :8080.
+func listenAddress() string {
+  raw := env("PORT", ":8080")
+  if _, err := strconv.Atoi(raw); err == nil {
+    return ":" + raw
+  }
+  return raw
 }
 func env(k, d string) string {
 	if v := os.Getenv(k); v != "" {
