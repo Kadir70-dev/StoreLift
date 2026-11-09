@@ -74,12 +74,16 @@ type app struct {
 	key, origin, adminHash string
 	mu                     sync.Mutex
 	attempts               map[string][]time.Time
+	trustedProxies         []netip.Prefix
 }
 
 var emailRE = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
 
 func main() {
 	a := &app{key: os.Getenv("PAGESPEED_API_KEY"), origin: env("WEB_ORIGIN", "http://localhost:3000"), adminHash: os.Getenv("ADMIN_PASSWORD_HASH"), attempts: map[string][]time.Time{}}
+	proxies, err := parseTrustedProxies(os.Getenv("TRUSTED_PROXY_CIDRS"))
+	if err != nil { log.Fatalf("invalid trusted proxy configuration: %v", err) }
+	a.trustedProxies = proxies
 	// Remote requests are not automatically followed; every redirect target is independently validated.
 	a.client = &http.Client{Timeout: 14 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse }, Transport: &http.Transport{Proxy: nil, DialContext: safeDial, MaxIdleConns: 15, IdleConnTimeout: 25 * time.Second, TLSHandshakeTimeout: 6 * time.Second, ResponseHeaderTimeout: 11 * time.Second}}
 	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
@@ -144,10 +148,7 @@ func (a *app) cors(next http.Handler) http.Handler {
 }
 func (a *app) limit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-		if ip == "" {
-			ip = r.RemoteAddr
-		}
+		ip := requestClientIP(r, a.trustedProxies)
 		now := time.Now()
 		maxPerMinute := 60
 		if r.URL.Path == "/api/admin/login" {
