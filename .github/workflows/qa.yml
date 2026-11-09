@@ -84,3 +84,76 @@ jobs:
             web/test-results/
             web/playwright-report/
           if-no-files-found: ignore
+
+  real-api-e2e:
+    name: Real Go + PostgreSQL + browser E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: storelift
+          POSTGRES_USER: storelift
+          POSTGRES_PASSWORD: ci_only_not_for_production
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U storelift -d storelift"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://storelift:ci_only_not_for_production@127.0.0.1:5432/storelift?sslmode=disable
+      PORT: ':8080'
+      WEB_ORIGIN: http://localhost:3000
+      API_INTERNAL_URL: http://127.0.0.1:8080
+      RATE_LIMIT_SECRET: ci_only_hashed_rate_limit_secret_long_enough_2026
+      CI_ADMIN_PASSWORD: 'CI_ONLY_StoreLift_Admin_Password_2026!'
+      REAL_API_E2E: '1'
+      STRIPE_SECRET_KEY: ''
+      STRIPE_WEBHOOK_SECRET: ''
+      PAGESPEED_API_KEY: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: api/go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Create disposable CI-only password hash (never print)
+        run: |
+          python3 - <<'PY'
+          import hashlib, os, secrets
+          salt = secrets.token_bytes(24)
+          password = os.environ['CI_ADMIN_PASSWORD'].encode()
+          digest = hashlib.pbkdf2_hmac('sha256', password, salt, 310000)
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as out:
+              out.write('ADMIN_PASSWORD_HASH=pbkdf2_sha256$310000$' + salt.hex() + '$' + digest.hex() + '\n')
+          PY
+      - name: Run migrations
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/schema.sql
+      - name: Run unmocked full-stack browser tests
+        run: |
+          set -euo pipefail
+          cd api
+          go run . > /tmp/storelift-real-api.log 2>&1 &
+          BACKEND_PID=$!
+          trap 'kill $BACKEND_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 80); do
+            if curl --silent --fail http://127.0.0.1:8080/api/health > /dev/null; then break; fi
+            if ! kill -0 "$BACKEND_PID" 2>/dev/null; then cat /tmp/storelift-real-api.log; exit 1; fi
+            sleep 1
+          done
+          curl --silent --fail http://127.0.0.1:8080/api/health > /dev/null
+          cd ../web
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          npx playwright test tests/real-api.spec.ts --project=chromium --reporter=list
+      - name: Archive real API browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storelift-real-api-e2e
+          path: |
+            web/test-results/
+            /tmp/storelift-real-api.log
+          if-no-files-found: ignore
