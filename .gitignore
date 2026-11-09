@@ -9,3 +9,7 @@ test-results/
 .DS_Store
 *.tsbuildinfo
 !examples/sample-audit.pdf
+
+# Never commit operator-managed staging environment secrets
+deploy/.env.staging
+deploy/.env.staging.*
