@@ -145,6 +145,8 @@ jobs:
           done
           curl --silent --fail http://127.0.0.1:8080/api/health > /dev/null
           cd ../web
+          # Next.js expects a numeric PORT; Go's listener received :8080 already.
+          export PORT=3000
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
           npx playwright test tests/real-api.spec.ts --project=chromium --reporter=list
