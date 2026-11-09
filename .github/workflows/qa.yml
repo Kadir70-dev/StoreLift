@@ -109,7 +109,7 @@ jobs:
       CI_ADMIN_PASSWORD: 'CI_ONLY_StoreLift_Admin_Password_2026!'
       REAL_API_E2E: '1'
       STRIPE_SECRET_KEY: ''
-      STRIPE_WEBHOOK_SECRET: ''
+      STRIPE_WEBHOOK_SECRET: whsec_ci_simulation_not_a_real_key
       PAGESPEED_API_KEY: ''
     steps:
       - uses: actions/checkout@v4
@@ -148,6 +148,8 @@ jobs:
           npm ci --no-audit --no-fund
           npx playwright install --with-deps chromium
           npx playwright test tests/real-api.spec.ts --project=chromium --reporter=list
+          cd ..
+          python3 scripts/stripe-webhook-ci.py
       - name: Archive real API browser evidence
         if: always()
         uses: actions/upload-artifact@v4
